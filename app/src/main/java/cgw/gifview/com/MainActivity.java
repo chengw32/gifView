@@ -1,5 +1,6 @@
 package cgw.gifview.com;
 
+import android.graphics.Bitmap;
 import android.nfc.Tag;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
@@ -17,6 +18,8 @@ public class MainActivity extends AppCompatActivity {
         System.loadLibrary("native-lib");
     }
 
+    Bitmap bitmap ;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -28,6 +31,8 @@ public class MainActivity extends AppCompatActivity {
         long l = GifPlayer.openGif(file.getAbsolutePath());
         Log.e("tttt---",""+l);
 
+        bitmap= Bitmap.createBitmap(GifPlayer.getWidth(l),GifPlayer.getHeight(l), Bitmap.Config.ARGB_8888);
+        GifPlayer.draw(bitmap);
     }
 
 }
