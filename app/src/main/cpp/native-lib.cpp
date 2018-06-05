@@ -5,6 +5,8 @@
 #include "gif_lib.h"
 #include <android/bitmap.h>
 
+#define  argb(a, r, g, b) ( ((a) & 0xff) << 24 ) | ( ((b) & 0xff) << 16 ) | ( ((g) & 0xff) << 8 ) | ((r) & 0xff)
+
 #define TAG "JNITEST"
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,TAG,__VA_ARGS__)
 
@@ -83,8 +85,8 @@ Java_cgw_gifview_com_GifPlayer_openGif(JNIEnv *env, jobject instance, jstring fi
 }
 
 
-JNIEXPORT void JNICALL
-Java_cgw_gifview_com_GifPlayer_draw(JNIEnv *env, jclass type,jlong giffile,jobject bitmap) {
+JNIEXPORT jint JNICALL
+Java_cgw_gifview_com_GifPlayer_draw(JNIEnv *env, jclass type, jlong giffile, jobject bitmap) {
 
     //拿出 gifbean
     GifFileType *gifFileType = (GifFileType *) giffile;
@@ -95,25 +97,52 @@ Java_cgw_gifview_com_GifPlayer_draw(JNIEnv *env, jclass type,jlong giffile,jobje
     //从 savedImage 取出图片相关信息
     GifImageDesc desc = savedImage.ImageDesc;
 
+    ColorMapObject *colorMapObject = desc.ColorMap;
 
-
-
-    //从 savedImage 取出栅格化的颜色数据
-    GifByteType *rasterBits  = savedImage.RasterBits;
-
-
-
-
-
-
-
-
+    //bitmap 没一行的像素
 
     //解析出像素数组  一幅图片--》二维 像素数组
     void *pixels;//入参出参变量
     AndroidBitmap_lockPixels(env, bitmap, &pixels);
+    int *line = (int *) pixels;
 
 
+    // 主要是需要里面的一个数据  就是没一行占的字节数  在内存移动的时候要用到
+    AndroidBitmapInfo bitmapInfo;
+    AndroidBitmap_getInfo(env, bitmap, &bitmapInfo);
+
+    line = (int *) ((char *) line + bitmapInfo.stride * desc.Top);
+
+//   在颜色表中的索引
+    int pixelIndex;
+    for (int y = desc.Top; y < desc.Top + desc.Height; ++y) {
+        //y轴方向的起始位置 是从 desc.Top开始的
+        for (int x = desc.Left; x < desc.Left + desc.Width; ++x) {
+            //x轴方向的起始位置 是从 desc.Top开始的
+            //之前的 总的索引
+            int beforeIndex = (y - desc.Top) * desc.Width;
+            //索引位置 =  之前的索引位置 + 当前位置
+            pixelIndex = beforeIndex + (x - desc.Left);
+            //获取栅格化后的像素数据
+            GifByteType gifByteType = savedImage.RasterBits[pixelIndex];
+            //获取原始的 rgb 颜色数值
+            GifColorType gifColorType = colorMapObject->Colors[gifByteType];
+            //计算出 rgb 颜色值
+            line[x] = argb(255, gifColorType.Red, gifColorType.Green, gifColorType.Blue);
+        }
+        line = (int *) ((char *) line + bitmapInfo.stride);
+    }
+
+//一帧 绘制完之后 相关数据保存到 GifBean
+    gifBean->currentFrame += 1;
+    if (gifBean->currentFrame >= gifBean->totalFrame - 1) {
+        //如果当前帧已经是最后一帧 则归零 重新播放
+        gifBean->currentFrame = 0;
+    }
+    //解锁资源
+    AndroidBitmap_unlockPixels(env, bitmap);
+    //返回延迟时间
+    return gifBean->dealys[gifBean->currentFrame];
 
 
 }

@@ -11,7 +11,7 @@ import java.net.PortUnreachableException;
  */
 public class GifPlayer {
     public static native long openGif(String filePath);
-    public static native void draw(long gifFile,Bitmap bitmap);
+    public static native int draw(long gifFile,Bitmap bitmap);
     public static native int getWidth(long gifFile);
     public static native int getHeight(long gifFile);
 }

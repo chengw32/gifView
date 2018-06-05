@@ -32,7 +32,8 @@ public class MainActivity extends AppCompatActivity {
         Log.e("tttt---",""+l);
 
         bitmap= Bitmap.createBitmap(GifPlayer.getWidth(l),GifPlayer.getHeight(l), Bitmap.Config.ARGB_8888);
-        GifPlayer.draw(bitmap);
+        int draw = GifPlayer.draw(l, bitmap);
+
     }
 
 }
