@@ -14,18 +14,20 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class MainActivity extends AppCompatActivity {
-
 
 
     static {
         System.loadLibrary("native-lib");
     }
 
-    Bitmap bitmap ;
-    long l ;
-    ImageView iv_show ;
+    Bitmap bitmap;
+    long l;
+    ImageView iv_show;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,29 +42,60 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    Handler handler = new Handler(){
+    private File getAssetsFile(String fileName) {
+        try {
+            InputStream is = getAssets().open(fileName);
+            FileOutputStream fos = null;
+//创建文件名
+            File file = new File(Environment.getExternalStorageDirectory(), "t");
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+            // 打开一个已存在文件的输出流
+            fos = new FileOutputStream(file);
+            // 将输入流is写入文件输出流fos中
+            int ch = 0;
+            try {
+                while ((ch = is.read()) != -1) {
+                    fos.write(ch);
+                }
+                return file;
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            } finally {
+                //关闭输入流等
+                fos.close();
+                is.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    Handler handler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-            int mNextFrame= GifPlayer.draw(l,bitmap);
+            int mNextFrame = GifPlayer.draw(l, bitmap);
             iv_show.setImageBitmap(bitmap);
-            handler.sendEmptyMessageDelayed(1,mNextFrame);
+            handler.sendEmptyMessageDelayed(1, mNextFrame);
         }
     };
 
     public void staaaa() {
 
-        File file=new File(Environment.getExternalStorageDirectory(),"Download/timg-2.gif");
-        if (!file.exists())return;
+
+        File file = getAssetsFile("test.gif");
+        if (!file.exists()) return;
         l = GifPlayer.openGif(file.getAbsolutePath());
 
         int width = GifPlayer.getWidth(l);
         int height = GifPlayer.getHeight(l);
-        Log.e("ttt", " w -h "+width + "---"+height);
 
-        bitmap= Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         int draw = GifPlayer.draw(l, bitmap);
         iv_show.setImageBitmap(bitmap);
-        Log.e("ttt", " draw back "+draw);
-        handler.sendEmptyMessageDelayed(1,draw);
+        handler.sendEmptyMessageDelayed(1, draw);
     }
 }
